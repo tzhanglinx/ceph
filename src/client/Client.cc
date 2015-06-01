@@ -9743,23 +9743,23 @@ int Client::_link(Inode *in, Inode *dir, const char *newname, int uid, int gid, 
   return res;
 }
 
-int Client::ll_link(Inode *parent, Inode *newparent, const char *newname,
+int Client::ll_link(Inode *in, Inode *newparent, const char *newname,
 		    struct stat *attr, int uid, int gid)
 {
   Mutex::Locker lock(client_lock);
 
-  vinodeno_t vparent = _get_vino(parent);
+  vinodeno_t vino = _get_vino(in);
   vinodeno_t vnewparent = _get_vino(newparent);
 
-  ldout(cct, 3) << "ll_link " << parent << " to " << vnewparent << " " <<
-    newname << dendl;
+  ldout(cct, 3) << "ll_link " << in << " to " << vnewparent << " "
+		<< newname << dendl;
   tout(cct) << "ll_link" << std::endl;
-  tout(cct) << vparent.ino.val << std::endl;
+  tout(cct) << vino.ino.val << std::endl;
   tout(cct) << vnewparent << std::endl;
   tout(cct) << newname << std::endl;
 
   C_InodeRef target(this);
-  int r = _link(parent, newparent, newname, uid, gid, &target);
+  int r = _link(in, newparent, newname, uid, gid, &target);
   if (r == 0) {
     assert(target);
     fill_stat(target.get(), attr);
