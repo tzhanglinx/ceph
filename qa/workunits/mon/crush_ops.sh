@@ -9,6 +9,7 @@ function expect_false()
 }
 
 ceph osd crush dump
+ceph osd crush tree
 
 # rules
 ceph osd crush rule dump
