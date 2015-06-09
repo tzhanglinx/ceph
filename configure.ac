@@ -51,7 +51,7 @@ AM_PROG_AS
 
 
 # enable make V=0 (if automake >1.11)
-AM_INIT_AUTOMAKE([foreign])
+AM_INIT_AUTOMAKE([foreign parallel-tests])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
 # Platform
