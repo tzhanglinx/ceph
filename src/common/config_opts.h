@@ -471,7 +471,7 @@ OPTION(mds_max_purge_ops_per_pg, OPT_FLOAT, 0.5)
 OPTION(osd_compact_leveldb_on_mount, OPT_BOOL, false)
 
 // Maximum number of backfills to or from a single osd
-OPTION(osd_max_backfills, OPT_U64, 10)
+OPTION(osd_max_backfills, OPT_U64, 1)
 
 // Minimum recovery priority (255 = max, smaller = lower)
 OPTION(osd_min_recovery_priority, OPT_INT, 0)
@@ -587,12 +587,7 @@ OPTION(osd_op_thread_suicide_timeout, OPT_INT, 150)
 OPTION(osd_recovery_thread_timeout, OPT_INT, 30)
 OPTION(osd_recovery_thread_suicide_timeout, OPT_INT, 300)
 OPTION(osd_recovery_sleep, OPT_FLOAT, 0)         // seconds to sleep between recovery ops
-OPTION(osd_snap_trim_thread_timeout, OPT_INT, 60*60*1)
-OPTION(osd_snap_trim_thread_suicide_timeout, OPT_INT, 60*60*10)
 OPTION(osd_snap_trim_sleep, OPT_FLOAT, 0)
-OPTION(osd_scrub_thread_timeout, OPT_INT, 60)
-OPTION(osd_scrub_thread_suicide_timeout, OPT_INT, 60)
-OPTION(osd_scrub_finalize_thread_timeout, OPT_INT, 60*10)
 OPTION(osd_scrub_invalid_stats, OPT_BOOL, true)
 OPTION(osd_remove_thread_timeout, OPT_INT, 60*60)
 OPTION(osd_remove_thread_suicide_timeout, OPT_INT, 10*60*60)
@@ -620,8 +615,8 @@ OPTION(osd_default_data_pool_replay_window, OPT_INT, 45)
 OPTION(osd_preserve_trimmed_log, OPT_BOOL, false)
 OPTION(osd_auto_mark_unfound_lost, OPT_BOOL, false)
 OPTION(osd_recovery_delay_start, OPT_FLOAT, 0)
-OPTION(osd_recovery_max_active, OPT_INT, 15)
-OPTION(osd_recovery_max_single_start, OPT_INT, 5)
+OPTION(osd_recovery_max_active, OPT_INT, 3)
+OPTION(osd_recovery_max_single_start, OPT_INT, 1)
 OPTION(osd_recovery_max_chunk, OPT_U64, 8<<20)  // max size of push chunk
 OPTION(osd_copyfrom_max_chunk, OPT_U64, 8<<20)   // max size of a COPYFROM chunk
 OPTION(osd_push_per_object_cost, OPT_U64, 1000)  // push cost per object
@@ -716,18 +711,27 @@ OPTION(filestore_rocksdb_options, OPT_STR, "")
 OPTION(mon_rocksdb_options, OPT_STR, "")
 
 /**
- * osd_client_op_priority and osd_recovery_op_priority adjust the relative
- * priority of client io vs recovery io.
+ * osd_*_priority adjust the relative priority of client io, recovery io,
+ * snaptrim io, etc
  *
- * osd_client_op_priority/osd_recovery_op_priority determines the ratio of
- * available io between client and recovery.  Each option may be set between
+ * osd_*_priority determines the ratio of available io between client and
+ * recovery.  Each option may be set between
  * 1..63.
- *
+ */
+OPTION(osd_client_op_priority, OPT_U32, 63)
+OPTION(osd_recovery_op_priority, OPT_U32, 3)
+
+OPTION(osd_snap_trim_priority, OPT_U32, 5)
+OPTION(osd_snap_trim_cost, OPT_U32, 1<<20) // set default cost equal to 1MB io
+
+OPTION(osd_scrub_priority, OPT_U32, 5)
+// set default cost equal to 50MB io
+OPTION(osd_scrub_cost, OPT_U32, 50<<20) 
+
+/**
  * osd_recovery_op_warn_multiple scales the normal warning threshhold,
  * osd_op_complaint_time, so that slow recovery ops won't cause noise
  */
-OPTION(osd_client_op_priority, OPT_U32, 63)
-OPTION(osd_recovery_op_priority, OPT_U32, 10)
 OPTION(osd_recovery_op_warn_multiple, OPT_U32, 16)
 
 // Max time to wait between notifying mon of shutdown and shutting down
@@ -869,6 +873,9 @@ OPTION(journal_discard, OPT_BOOL, false) //using ssd disk as journal, whether su
 OPTION(rados_mon_op_timeout, OPT_DOUBLE, 0) // how many seconds to wait for a response from the monitor before returning an error from a rados operation. 0 means on limit.
 OPTION(rados_osd_op_timeout, OPT_DOUBLE, 0) // how many seconds to wait for a response from osds before returning an error from a rados operation. 0 means no limit.
 
+OPTION(rbd_op_threads, OPT_INT, 1)
+OPTION(rbd_op_thread_timeout, OPT_INT, 60)
+OPTION(rbd_non_blocking_aio, OPT_BOOL, true) // process AIO ops from a worker thread to prevent blocking
 OPTION(rbd_cache, OPT_BOOL, true) // whether to enable caching (writeback unless rbd_cache_max_dirty is 0)
 OPTION(rbd_cache_writethrough_until_flush, OPT_BOOL, true) // whether to make writeback caching writethrough until flush is called, to be sure the user of librbd will send flushs so that writeback is safe
 OPTION(rbd_cache_size, OPT_LONGLONG, 32<<20)         // cache size in bytes
@@ -979,6 +986,7 @@ OPTION(rgw_op_thread_timeout, OPT_INT, 10*60)
 OPTION(rgw_op_thread_suicide_timeout, OPT_INT, 0)
 OPTION(rgw_thread_pool_size, OPT_INT, 100)
 OPTION(rgw_num_control_oids, OPT_INT, 8)
+OPTION(rgw_num_rados_handles, OPT_U32, 1)
 
 OPTION(rgw_zone, OPT_STR, "") // zone name
 OPTION(rgw_zone_root_pool, OPT_STR, ".rgw.root")    // pool where zone specific info is stored

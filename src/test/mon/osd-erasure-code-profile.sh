@@ -15,7 +15,7 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Library Public License for more details.
 #
-source test/ceph-helpers.sh
+source ../qa/workunits/ceph-helpers.sh
 
 function run() {
     local dir=$1
@@ -203,6 +203,36 @@ function TEST_format_plain() {
         --osd_pool_default_erasure-code-profile "plugin=example" || return 1
     ./ceph --format json osd erasure-code-profile get default | \
         grep "$expected" || return 1
+}
+
+function TEST_profile_k_sanity() {
+    local dir=$1
+    local profile=profile-sanity
+
+    run_mon $dir a || return 1
+
+    expect_failure $dir 'k must be a multiple of (k + m) / l' \
+        ./ceph osd erasure-code-profile set $profile \
+        plugin=lrc \
+        l=1 \
+        k=1 \
+        m=1 || return 1
+
+    if erasure_code_plugin_exists isa ; then
+        expect_failure $dir 'k=1 must be >= 2' \
+            ./ceph osd erasure-code-profile set $profile \
+            plugin=isa \
+            k=1 \
+            m=1 || return 1
+    else
+        echo "SKIP because plugin isa has not been built"
+    fi
+
+    expect_failure $dir 'k=1 must be >= 2' \
+        ./ceph osd erasure-code-profile set $profile \
+        plugin=jerasure \
+        k=1 \
+        m=1 || return 1
 }
 
 main osd-erasure-code-profile "$@"

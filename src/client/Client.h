@@ -290,7 +290,9 @@ public:
   void resend_unsafe_requests(MetaSession *s);
 
   // mds requests
-  ceph_tid_t last_tid, last_flush_seq;
+  ceph_tid_t last_tid;
+  ceph_tid_t oldest_tid; // oldest incomplete mds request, excluding setfilelock requests
+  ceph_tid_t last_flush_seq;
   map<ceph_tid_t, MetaRequest*> mds_requests;
 
   void dump_mds_requests(Formatter *f);
@@ -301,6 +303,7 @@ public:
 		   Inode **ptarget = 0, bool *pcreated = 0,
 		   int use_mds=-1, bufferlist *pdirbl=0);
   void put_request(MetaRequest *request);
+  void unregister_request(MetaRequest *request);
 
   int verify_reply_trace(int r, MetaRequest *request, MClientReply *reply,
 			 Inode **ptarget, bool *pcreated, int uid, int gid);
@@ -319,6 +322,7 @@ public:
   void kick_requests_closed(MetaSession *session);
   void handle_client_request_forward(MClientRequestForward *reply);
   void handle_client_reply(MClientReply *reply);
+  bool is_dir_operation(MetaRequest *request);
 
   bool   initialized;
   bool   authenticated;
@@ -553,6 +557,7 @@ protected:
   void get_cap_ref(Inode *in, int cap);
   void put_cap_ref(Inode *in, int cap);
   void flush_snaps(Inode *in, bool all_again=false, CapSnap *again=0);
+  void wait_sync_caps(Inode *in, uint16_t flush_tid[]);
   void wait_sync_caps(uint64_t want);
   void queue_cap_snap(Inode *in, SnapContext &old_snapc);
   void finish_cap_snap(Inode *in, CapSnap *capsnap, int used);

@@ -320,7 +320,7 @@ bool MDSMonitor::preprocess_beacon(MMDSBeacon *m)
     goto out;
   }
   // is there a state change here?
-  if (info.state != state) {    
+  if (info.state != state) {
     // legal state change?
     if ((info.state == MDSMap::STATE_STANDBY ||
 	 info.state == MDSMap::STATE_STANDBY_REPLAY ||
@@ -639,8 +639,14 @@ void MDSMonitor::_updated(MMDSBeacon *m)
   if (m->get_state() == MDSMap::STATE_STOPPED) {
     // send the map manually (they're out of the map, so they won't get it automatic)
     mon->send_reply(m, new MMDSMap(mon->monmap->fsid, &mdsmap));
+  } else {
+    mon->send_reply(m, new MMDSBeacon(mon->monmap->fsid,
+				      m->get_global_id(),
+				      m->get_name(),
+				      mdsmap.get_epoch(),
+				      m->get_state(),
+				      m->get_seq()));
   }
-
   m->put();
 }
 
@@ -1122,6 +1128,21 @@ int MDSMonitor::_check_pool(
     if (!pool->has_tiers() || !pool->has_read_tier() || !pool->has_write_tier()) {
       *ss << "pool '" << pool_name << "' (id '" << pool_id << "')"
          << " is an erasure-code pool";
+      return -EINVAL;
+    }
+
+    // That cache tier overlay must be writeback, not readonly (it's the
+    // write operations like modify+truncate we care about support for)
+    const pg_pool_t *write_tier = mon->osdmon()->osdmap.get_pg_pool(
+        pool->write_tier);
+    assert(write_tier != NULL);  // OSDMonitor shouldn't allow DNE tier
+    if (write_tier->cache_mode == pg_pool_t::CACHEMODE_FORWARD
+        || write_tier->cache_mode == pg_pool_t::CACHEMODE_READONLY) {
+      *ss << "EC pool '" << pool_name << "' has a write tier ("
+          << mon->osdmon()->osdmap.get_pool_name(pool->write_tier)
+          << ") that is configured "
+             "to forward writes.  Use a cache mode such as 'writeback' for "
+             "CephFS";
       return -EINVAL;
     }
   }
