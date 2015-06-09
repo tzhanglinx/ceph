@@ -3668,6 +3668,7 @@ reprotect_and_return_err:
       return;
     }
 
+    RWLock::RLocker owner_locker(ictx->owner_lock);
     ictx->user_flushed();
 
     C_AioWrite *flush_ctx = new C_AioWrite(cct, c);
