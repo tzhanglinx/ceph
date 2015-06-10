@@ -1559,6 +1559,27 @@ void ReplicatedPG::do_op(OpRequestRef& op)
     return;
 
   if (r && (r != -ENOENT || !obc)) {
+    // copy the reqids for copy get on ENOENT
+    if (r == -ENOENT &&
+	(m->ops[0].op.op == CEPH_OSD_OP_COPY_GET_CLASSIC ||
+	 m->ops[0].op.op == CEPH_OSD_OP_COPY_GET)) {
+      uint64_t features = m->get_features();
+      object_copy_data_t reply_obj;
+      pg_log.get_log().get_object_reqids(oid, 10, &reply_obj.reqids);
+      dout(20) << __func__ << " got reqids " << reply_obj.reqids << dendl;
+      if (m->ops[0].op.op == CEPH_OSD_OP_COPY_GET_CLASSIC) {
+        reply_obj.encode_classic(m->ops[0].outdata);
+      } else {
+        ::encode(reply_obj, m->ops[0].outdata, features);
+      }
+      m->ops[0].rval = r;
+      MOSDOpReply *reply = new MOSDOpReply(m, 0, get_osdmap()->get_epoch(), 0, false);
+      reply->claim_op_out_data(m->ops);
+      reply->set_result(r);
+      reply->add_flags(CEPH_OSD_FLAG_ACK | CEPH_OSD_FLAG_ONDISK);
+      osd->send_message_osd_client(reply, m->get_connection());
+      return;
+    }
     dout(20) << __func__ << "find_object_context got error " << r << dendl;
     osd->reply_op_error(op, r);
     return;
