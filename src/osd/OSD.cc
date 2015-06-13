@@ -7138,9 +7138,11 @@ void OSD::do_notifies(
       continue;
     }
     service.share_map_peer(it->first, con.get(), curmap);
-    assert(curmap->get_xinfo(it->first).features & CEPH_FEATURE_INDEP_PG_MAP);
     dout(7) << __func__ << " osd " << it->first
 	    << " on " << it->second.size() << " PGs" << dendl;
+    dout(7) << "xinfo features " << curmap->get_xinfo(it->first).features << dendl;
+    dout(7) << "con features " << con->get_features() << dendl;
+    assert(curmap->get_xinfo(it->first).features & CEPH_FEATURE_INDEP_PG_MAP);
     MOSDPGNotify *m = new MOSDPGNotify(curmap->get_epoch(),
 				       it->second);
     con->send_message(m);
@@ -7169,9 +7171,11 @@ void OSD::do_queries(map<int, map<spg_t,pg_query_t> >& query_map,
       continue;
     }
     service.share_map_peer(who, con.get(), curmap);
-    assert(curmap->get_xinfo(who).features & CEPH_FEATURE_INDEP_PG_MAP);
     dout(7) << __func__ << " querying osd." << who
 	    << " on " << pit->second.size() << " PGs" << dendl;
+    dout(7) << "xinfo features " << curmap->get_xinfo(who).features << dendl;
+    dout(7) << "con features " << con->get_features() << dendl;
+    assert(curmap->get_xinfo(who).features & CEPH_FEATURE_INDEP_PG_MAP);
     MOSDPGQuery *m = new MOSDPGQuery(curmap->get_epoch(), pit->second);
     con->send_message(m);
   }
